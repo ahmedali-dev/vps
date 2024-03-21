@@ -23,6 +23,15 @@ jobs:
         sudo apt-get update
         sudo apt-get install --no-install-recommends -y xrdp
 
+    - name: Set RDP Credentials
+      run: |
+        sudo mkdir /var/run/xrdp
+        sudo /usr/sbin/xrdp-sessman sesadmin --si-disc
+        sudo /usr/sbin/xrdp-sessman sesadmin --si-mem 100 --si-addr=0.0.0.0
+        sudo /usr/sbin/xrdp-sessman sesadmin --si-passwd=/etc/xrdp/xrdp-passwd
+        echo "YOUR_USERNAME" | sudo /usr/sbin/xrdp-sessman sesadmin --si-reguser
+        echo "YOUR_PASSWORD" | sudo /usr/sbin/xrdp-sessman sesadmin --si-regpasswd
+        
     - name: Configure Remote Desktop
       run: |
         sudo sed -i 's/3389/3390/g' /etc/xrdp/xrdp.ini
