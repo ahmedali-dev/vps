@@ -3,39 +3,34 @@ name: CI
 on: [push, workflow_dispatch]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install ngrok
-      run: |
-        wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
-        tar -xvzf ngrok-v3-stable-linux-amd64.tgz
+    - name: Download ngrok
+      run: wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip -O ngrok.zip
+      
+    - name: Extract ngrok
+      run: unzip ngrok.zip
 
-    - name: Auth
+    - name: Authenticate ngrok
       run: ./ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
-      env:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-
-    - name: Install Remote Desktop
+      
+    - name: Install SSH
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y xrdp
+        sudo apt-get install -y openssh-server
+        sudo systemctl enable ssh
+        sudo systemctl start ssh
 
-    - name: Set RDP Credentials
+    - name: Set SSH Permissions
       run: |
-        sudo mkdir /var/run/xrdp
-        sudo /usr/sbin/xrdp-sessman sesadmin --si-disc
-        sudo /usr/sbin/xrdp-sessman sesadmin --si-mem 100 --si-addr=0.0.0.0
-        sudo /usr/sbin/xrdp-sessman sesadmin --si-passwd=/etc/xrdp/xrdp-passwd
-        echo "ahmedali" | sudo /usr/sbin/xrdp-sessman sesadmin --si-reguser
-        echo "ahmed123#" | sudo /usr/sbin/xrdp-sessman sesadmin --si-regpasswd
-        
-    - name: Configure Remote Desktop
-      run: |
-        sudo sed -i 's/3389/3390/g' /etc/xrdp/xrdp.ini
-        sudo systemctl restart xrdp
+        sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+        sudo systemctl restart sshd
 
-    - name: Create Tunnel
-      run: ./ngrok tcp 3390
+    - name: Set Root Password
+      run: |
+        echo root:P@ssw0rd! | sudo chpasswd
+
+    - name: Create ngrok TCP Tunnel for SSH (Port 22)
+      run: ./ngrok tcp 22
